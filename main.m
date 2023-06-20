@@ -53,9 +53,9 @@ varNames = ["Time Stamp", "Block", "Frequency", "Scheduled Generation", "Actual 
 f = uifigure("Name", "Power Prediction System", "Position",[20 20 1800 900]);
 uit = uitable(f, 'Position',[10 10 1780 300]);
 a = uiaxes(f, 'Position', [10 480 1780 400]);
-title(a, 'Frequency Data');
+title(a, 'Power Data');
 xlabel(a, 'Time Stamp', 'FontSize', 12);
-ylabel(a, 'Frequency (Hz)', 'FontSize', 12);
+ylabel(a, 'Scheduled Power (MW)', 'FontSize', 12);
 grid (a, 'on');
 
 lbl1 = uilabel(f, 'Position', [20 380 500 50]);
