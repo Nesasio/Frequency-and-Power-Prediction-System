@@ -1,13 +1,16 @@
 % Driver Code
 
 % ---------------------------------------------------------------------------------
-% Initializing the mean and standard deviation variables
+% Loading the system variables
 
-% Varibales for 15 minutes prediction
+% Variables for 15 minutes prediction
 load variables_15.mat;
 
 % Variables for 45 minutes prediction
 load variables_45.mat;
+
+% Variables for frequency prediction
+load trainingVariables.mat
 
 % ---------------------------------------------------------------------------------
 
@@ -16,9 +19,10 @@ history = 1;  % Number of datapoints it takes to start the prediction
 dataTest = zeros(history, 3);
 numPred = 3;  % Number of future predictions to be done in each step
 
-% Loading the trained Neural Network
+% Loading the trained Neural Networks
 load lstm_15-min_nnet.mat;
 load lstm_45-min_nnet.mat;
+load FNN_100eph_0.005LR.mat;
 
 tableRowLimit = 10;  % Maximum number of rows the table will display
 valueCounter = 0;
@@ -33,6 +37,7 @@ intervalDuration = 5*60;  % minutes * 60 seconds (Duration between collecting 2 
 TimeStamp = [];
 Block = [];
 Frequency = [];
+PredictedFrequency = [];
 ScheduledGeneration = [];
 ActualGeneration = [];
 Prediction_15 = [];
@@ -40,46 +45,90 @@ Prediction_45 = [];
 Prediction_S = [];
     
 % Variable Names
-varNames = ["Time Stamp", "Block", "Frequency", "Scheduled Generation", "Actual Generation", "(n+1) Prediction", "(n+3) Prediction", "Predicted Suggestion"];
+varNames = ["Time Stamp", "Block", "Frequency", "Frequency Prediction", "Scheduled Generation", "Actual Generation", "(n+1) Prediction", "(n+3) Prediction", "Predicted Suggestion"];
     
 % Creating UI
-f = uifigure("Name", "Power Prediction System", "Position",[20 20 1800 900]);
-uit = uitable(f, 'Position',[10 10 1780 300]);
-a = uiaxes(f, 'Position', [10 480 1780 400]);
+f = uifigure("Name", "Prediction System", "Position", [20 20 1800 900]);
+tabgp = uitabgroup(f, 'Position', [10 380 1780 500]);
+tab1 = uitab(tabgp, 'Title', 'Frequency');
+tab2 = uitab(tabgp, 'Title', 'Scheduled Power');
+
+uit = uitable(f, 'Position',[10 10 1780 360]);
+
+% Scheduled Power Plot
+a = uiaxes(tab2, 'Position', [10 10 1760 350]);
 title(a, 'Power Data');
 xlabel(a, 'Time Stamp', 'FontSize', 12);
 ylabel(a, 'Scheduled Power (MW)', 'FontSize', 12);
-grid (a, 'on');
+grid(a, 'on');
 
-lbl1 = uilabel(f, 'Position', [20 380 500 50]);
-lbl1.Text = "<B><font style='color:green;' size='6';>CURRENT SG:</font></B>";
+% Frequency Plot
+af = uiaxes(tab1, 'Position', [10 10 1760 350]);
+title(af, 'Frequency Data');
+xlabel(af, 'Time Stamp', 'FontSize', 12);
+ylabel(af, 'Frequency (Hz)', 'FontSize', 12);
+grid(af, 'on');
+
+lbl1 = uilabel(tab2, 'Position', [20 380 500 50]);
+lbl1.Text = "<B><font style='color:green;' size='6';>Current SG:</font></B>";
 lbl1.Interpreter = "html";
 
-lbl2 = uilabel(f, 'Position', [470 380 600 50]);
-lbl2.Text = "<B><font style='color:red'; size='6';>(n+3) BLOCK PREDICTION:</font></B>";
+lbl2 = uilabel(tab2, 'Position', [450 380 600 50]);
+lbl2.Text = "<B><font style='color:red'; size='6';> N+3rd Block Prediction:</font></B>";
 lbl2.Interpreter = "html";
 
-lbl3 = uilabel(f, 'Position', [260 382 200 50]);
+lbl3 = uilabel(tab2, 'Position', [210 382 200 50]);
 lbl3.FontSize = 34;
 lbl3.FontColor = [0 0.5 0];
 lbl3.FontWeight = 'bold';
 lbl3.Text = "NaN";
 
-lbl4 = uilabel(f, 'Position', [910 382 200 50]);
+lbl4 = uilabel(tab2, 'Position', [830 382 200 50]);
 lbl4.FontSize = 34;
 lbl4.FontColor = [1 0 0];
 lbl4.FontWeight = 'bold';
 lbl4.Text = "NaN";
 
-lbl5 = uilabel(f, 'Position', [1170 380 600 50]);
-lbl5.Text = "<B><font style='color:blue'; size='6';>CURRENT BLOCK:</font></B>";
+lbl5 = uilabel(tab1, 'Position', [1170 380 600 50]);
+lbl5.Text = "<B><font style='color:blue'; size='6';>Current Block:</font></B>";
 lbl5.Interpreter = "html";
 
-lbl6 = uilabel(f, 'Position', [1470 382 200 50]);
+lbl6 = uilabel(tab1, 'Position', [1520 382 200 50]);
 lbl6.FontSize = 34;
 lbl6.FontColor = [0 0 1];
 lbl6.FontWeight = 'bold';
 lbl6.Text = "NaN";
+
+lbl7 = uilabel(tab1, 'Position', [20 380 500 50]);
+lbl7.Text = "<B><font style='color:green;' size='6';>Frequency:</font></B>";
+lbl7.Interpreter = "html";
+
+lbl8 = uilabel(tab1, 'Position', [460 380 600 50]);
+lbl8.Text = "<B><font style='color:red'; size='6';>Next Block Prediction:</font></B>";
+lbl8.Interpreter = "html";
+
+lbl9 = uilabel(tab1, 'Position', [220 382 200 50]);
+lbl9.FontSize = 34;
+lbl9.FontColor = [0 0.5 0];
+lbl9.FontWeight = 'bold';
+lbl9.Text = "NaN";
+
+lbl10 = uilabel(tab1, 'Position', [810 382 200 50]);
+lbl10.FontSize = 34;
+lbl10.FontColor = [1 0 0];
+lbl10.FontWeight = 'bold';
+lbl10.Text = "NaN";
+
+lbl11 = uilabel(tab2, 'Position', [1170 380 600 50]);
+lbl11.Text = "<B><font style='color:blue'; size='6';>Current Block:</font></B>";
+lbl11.Interpreter = "html";
+
+lbl11 = uilabel(tab2, 'Position', [1520 382 200 50]);
+lbl11.FontSize = 34;
+lbl11.FontColor = [0 0 1];
+lbl11.FontWeight = 'bold';
+lbl11.Text = "NaN";
+
 
 % ===================================================
 
@@ -140,6 +189,7 @@ while toc < runTime
     currentBlock = (int64(floor(minutesPassed/15)) + 1);
     blockText = sprintf('%d', currentBlock);
     lbl6.Text = blockText;
+    lbl11.Text = blockText;
     
     % -----------------------------------------------------------------------
     
@@ -165,6 +215,7 @@ while toc < runTime
                 TimeStamp = [TimeStamp; currentDateTime];
                 Block = [Block; currentBlock];
                 Frequency = [Frequency; finalFreq];
+                PredictedFrequency = [PredictedFrequency; "NaN"];
                 ScheduledGeneration = [ScheduledGeneration; finalSch];
                 ActualGeneration = [ActualGeneration; int64(finalAct)];
                 Prediction_15 = [Prediction_15; "NaN"];
@@ -172,12 +223,15 @@ while toc < runTime
                 Prediction_S = [Prediction_S; "NaN"];
                 
                 % Creating table
-                DataTable = table(TimeStamp, Block, Frequency, ScheduledGeneration, ActualGeneration, Prediction_15, Prediction_45, Prediction_S, 'VariableNames', varNames);
+                DataTable = table(TimeStamp, Block, Frequency, PredictedFrequency, ScheduledGeneration, ActualGeneration, Prediction_15, Prediction_45, Prediction_S, 'VariableNames', varNames);
                 
                 % Displaying the current prediction values on labels
                 currentVal = sprintf('%d' + " MW", finalSch);
                 lbl3.Text = currentVal;
                 lbl4.Text = "Analysing...";
+                cf = sprintf('%.4f' + " Hz", finalFreq(end));
+                lbl9.Text = cf;
+                lbl10.Text = "Analysing...";
                 
             else
                 dataTest(1:end-1, :) = dataTest(2:end, :);
@@ -185,9 +239,11 @@ while toc < runTime
                 
                 X_15 = (dataTest(1:end, :) - muX_15)./sigmaX_15;
                 X_45 = (dataTest(1:end, :) - muX_45)./sigmaX_45;
+                X_f = (dataTest(1:end, :) - muX)./sigmaX;
 
                 [net_15, Yp_15] = predictAndUpdateState(net_15, X_15', 'SequencePaddingDirection', 'left');
                 [net_45, Yp_45] = predictAndUpdateState(net_45, X_45', 'SequencePaddingDirection', 'left');
+                [net_f, Yp_f] = predictAndUpdateState(net_f, X_f', 'SequencePaddingDirection', 'left');
                 
                 
                 % ----------------------------------------------------------------------------
@@ -216,15 +272,23 @@ while toc < runTime
                     Yp_45(end) = powerUpperLimit;
                 end
                 
+                Yp_f(end) = sigmaY*Yp_f(end) + muY;
+                
                 % Setting the current predicted value to temp variable
                 tempSG = finalSch;
                 
-                % Plotting the values on graph
+                % Plotting power the values on graph
                 hold(a, 'on');
-                plot(a, pred_15_Time, Yp_15(end), 'rx');
-                plot(a, pred_45_Time, Yp_45(end), 'bx');
+                plot(a, pred_15_Time, Yp_15(end), 'rx', 'MarkerSize', 10, 'LineWidth', 5);
+                plot(a, pred_45_Time, Yp_45(end), 'bx', 'MarkerSize', 10, 'LineWidth', 5);
                 a.XLim = [(currentDateTime - seconds(10 * intervalDuration)) (currentDateTime + seconds(10 * intervalDuration))];
                 hold(a, 'off');
+                
+                % Plotting frequency the values on graph
+                hold(af, 'on');
+                plot(af, pred_15_Time, Yp_f(end), 'rx','MarkerSize', 10, 'LineWidth', 5);
+                af.XLim = [(currentDateTime - seconds(10 * intervalDuration)) (currentDateTime + seconds(10 * intervalDuration))];
+                hold(af, 'off');
                 
                 % --------------------------------------------------------------------------
                 % Suggesting changes in power
@@ -240,6 +304,7 @@ while toc < runTime
                 TimeStamp = [TimeStamp; currentDateTime];
                 Block = [Block; currentBlock];
                 Frequency = [Frequency; finalFreq];
+                PredictedFrequency = [PredictedFrequency; (Yp_f)];
                 ScheduledGeneration = [ScheduledGeneration; finalSch];
                 ActualGeneration = [ActualGeneration; int64(finalAct)];
                 Prediction_15 = [Prediction_15; int64(Yp_15(end))];
@@ -258,15 +323,25 @@ while toc < runTime
                 
                 %predictedVal = sprintf('%d', Prediction_S(end));
                 lbl4.Text = Prediction_S(end);
+                lbl9.Text = sprintf('%.4f' + " Hz", finalFreq);
+                lbl10.Text = sprintf('%.4f' + " Hz", Yp_f);
+                
                 
             end
             
-            % Plotting the values on the graph
+            % Plotting the power values on the graph
             hold(a, 'on');
-            plot(a, currentDateTime, finalSch, 'bo');
+            plot(a, currentDateTime, finalSch, 'bo', 'MarkerSize', 10, 'LineWidth', 3);
             a.XLim = [(currentDateTime - seconds(10 * intervalDuration)) (currentDateTime + seconds(10 * intervalDuration))];
             a.YLim = [500 2000];
             hold(a, 'off');
+            
+            % Plotting the frequency values on the graph
+            hold(af, 'on');
+            plot(af, currentDateTime, finalFreq, 'bo', 'MarkerSize', 10, 'LineWidth', 3);
+            af.XLim = [(currentDateTime - seconds(10 * intervalDuration)) (currentDateTime + seconds(10 * intervalDuration))];
+            af.YLim = [49.6 50.4];
+            hold(af, 'off');
             
             % Updating the variables
             prevFreqData = currFreq;
