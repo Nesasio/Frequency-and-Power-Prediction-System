@@ -1,38 +1,29 @@
 % Driver Code
 
 % ---------------------------------------------------------------------------------
-
 % Initializing the mean and standard deviation variables
 
-% Older Variables for NN lstm_1c_0.005_nnet.mat
-%{
-muX = [49.9997673870878 1365.85573216958 1367.18376475478];
-sigmaX = [0.0472558962036959 274.501008104332 269.606176789422];
-muY = 1367.30000000000;
-sigmaY = 269.647573646088;
-%}
+% Varibales for 15 minutes prediction
+load variables_15.mat;
 
-% Variables for lstm_1c_256_0.005_nnet.mat
-muX = [49.8438098681191 1309.75863330836 1308.85755208464];
-sigmaX = [2.70842600153847 322.406414416332 325.828599350139];
-muY = 1309.76219117313;
-sigmaY = 322.401613792003;
-
+% Variables for 45 minutes prediction
+load variables_45.mat;
 
 % ---------------------------------------------------------------------------------
 
 powerUpperLimit = 1648;  % Upper limit of the power supplied in MegaWatts
-history = 4;  % Number of datapoints it takes to start the prediction
+history = 1;  % Number of datapoints it takes to start the prediction
 dataTest = zeros(history, 3);
-% numPred = 3;  % Number of future predictions to be done in each step
+numPred = 3;  % Number of future predictions to be done in each step
 
 % Loading the trained Neural Network
-load lstm_1c_256_0.005_nnet.mat;
+load lstm_15-min_nnet.mat;
+load lstm_45-min_nnet.mat;
 
 tableRowLimit = 10;  % Maximum number of rows the table will display
 valueCounter = 0;
 stepSize = 50;  % Maximum deviation to be considered negligible
-runTime = 1*60*60;  % Hours * 60 * 60 seconds
+runTime = 2*24*60*60;  % Hours * 60 * 60 seconds
 intervalDuration = 5*60;  % minutes * 60 seconds (Duration between collecting 2 values)
 
 % ===================================================
@@ -44,10 +35,12 @@ Block = [];
 Frequency = [];
 ScheduledGeneration = [];
 ActualGeneration = [];
-Prediction = [];
+Prediction_15 = [];
+Prediction_45 = [];
+Prediction_S = [];
     
 % Variable Names
-varNames = ["Time Stamp", "Block", "Frequency", "Scheduled Generation", "Actual Generation", "Predicted Suggestion"];
+varNames = ["Time Stamp", "Block", "Frequency", "Scheduled Generation", "Actual Generation", "(n+1) Prediction", "(n+3) Prediction", "Predicted Suggestion"];
     
 % Creating UI
 f = uifigure("Name", "Power Prediction System", "Position",[20 20 1800 900]);
@@ -63,7 +56,7 @@ lbl1.Text = "<B><font style='color:green;' size='6';>CURRENT SG:</font></B>";
 lbl1.Interpreter = "html";
 
 lbl2 = uilabel(f, 'Position', [470 380 600 50]);
-lbl2.Text = "<B><font style='color:red'; size='6';>NEXT BLOCK PREDICTION:</font></B>";
+lbl2.Text = "<B><font style='color:red'; size='6';>(n+3) BLOCK PREDICTION:</font></B>";
 lbl2.Interpreter = "html";
 
 lbl3 = uilabel(f, 'Position', [260 382 200 50]);
@@ -96,14 +89,9 @@ urlP = 'https://www.upsldc.org/real-time-data?p_p_id=upgenerationsummary_WAR_UPS
 options = weboptions('Timeout', 150);
 
 % ----------------------------------------------------------------------------------
-% Creating a data file to store the extracted data
-fileID = fopen('data_log.csv', 'a');
-
-% ----------------------------------------------------------------------------------
 
 % Initializing variables
 prevFreqData = 0;
-temp = 0;
 tempSG = 0;
 
 % Mainloop
@@ -141,7 +129,8 @@ while toc < runTime
     
     % Current time stamp
     currentDateTime = datetime('now');
-    predTime = currentDateTime + seconds(intervalDuration);
+    pred_15_Time = currentDateTime + seconds(intervalDuration);
+    pred_45_Time = currentDateTime + 3*seconds(intervalDuration);
     
     % Minutes passed since midnight
     currentDate = dateshift(currentDateTime, 'start', 'day');
@@ -172,17 +161,18 @@ while toc < runTime
             
             if valueCounter < history
                 dataTest(valueCounter+1, :) = [finalFreq finalSch finalAct];
-                logFileData = strcat(datestr(currentDateTime), ',', num2str(finalFreq(1)), ',', num2str(finalSch(1)), ',', num2str(finalAct(1)), ',', 'NaN');
                 
                 TimeStamp = [TimeStamp; currentDateTime];
                 Block = [Block; currentBlock];
                 Frequency = [Frequency; finalFreq];
                 ScheduledGeneration = [ScheduledGeneration; finalSch];
                 ActualGeneration = [ActualGeneration; int64(finalAct)];
-                Prediction = [Prediction; "NaN"];
+                Prediction_15 = [Prediction_15; "NaN"];
+                Prediction_45 = [Prediction_45; "NaN"];
+                Prediction_S = [Prediction_S; "NaN"];
                 
                 % Creating table
-                DataTable = table(TimeStamp, Block, Frequency, ScheduledGeneration, ActualGeneration, Prediction, 'VariableNames', varNames);
+                DataTable = table(TimeStamp, Block, Frequency, ScheduledGeneration, ActualGeneration, Prediction_15, Prediction_45, Prediction_S, 'VariableNames', varNames);
                 
                 % Displaying the current prediction values on labels
                 currentVal = sprintf('%d' + " MW", finalSch);
@@ -193,49 +183,58 @@ while toc < runTime
                 dataTest(1:end-1, :) = dataTest(2:end, :);
                 dataTest(end, :) = [finalFreq finalSch finalAct];
                 
-                if temp == 0
-                    logFileData = strcat(datestr(currentDateTime), ',', num2str(finalFreq(1)), ',', num2str(finalSch(1)), ',', num2str(finalAct(1)), ',', 'NaN');
-                else
-                    logFileData = strcat(datestr(currentDateTime), ',', num2str(finalFreq(1)), ',', num2str(finalSch(1)), ',', num2str(finalAct(1)), ',', num2str(temp));
-                end
+                X_15 = (dataTest(1:end, :) - muX_15)./sigmaX_15;
+                X_45 = (dataTest(1:end, :) - muX_45)./sigmaX_45;
+
+                [net_15, Yp_15] = predictAndUpdateState(net_15, X_15', 'SequencePaddingDirection', 'left');
+                [net_45, Yp_45] = predictAndUpdateState(net_45, X_45', 'SequencePaddingDirection', 'left');
                 
-                X = (dataTest(1:end, :) - muX)./sigmaX;
-                [net, Yp] = predictAndUpdateState(net, X', 'SequencePaddingDirection', 'left');
                 
                 % ----------------------------------------------------------------------------
                 % Smoothing the preditions
-                deviation = abs((sigmaY*Yp(end) + muY) - finalSch);
+                deviation = abs((sigmaY_15*Yp_15(end) + muY_15) - finalSch);
                 if deviation < stepSize
-                    Yp(end) = dataTest(end, 2);
+                    Yp_15(end) = dataTest(end, 2);
                 else
-                    Yp(end) = sigmaY*Yp(end) + muY;
+                    Yp_15(end) = sigmaY_15*Yp_15(end) + muY_15;
                 end
                 
+                deviation = abs((sigmaY_45*Yp_45(end) + muY_45) - finalSch);
+                if deviation < stepSize
+                    Yp_45(end) = dataTest(end, 2);
+                else
+                    Yp_45(end) = sigmaY_45*Yp_45(end) + muY_15;
+                end
+
                 % ----------------------------------------------------------------------------
                 % Power upper limit
-                if Yp(end) > powerUpperLimit
-                    Yp(end) = powerUpperLimit;
+                if Yp_15(end) > powerUpperLimit
+                    Yp_15(end) = powerUpperLimit;
+                end
+
+                if Yp_45(end) > powerUpperLimit
+                    Yp_45(end) = powerUpperLimit;
                 end
                 
                 % Setting the current predicted value to temp variable
-                temp = Yp(end);
                 tempSG = finalSch;
                 
                 % Plotting the values on graph
                 hold(a, 'on');
-                plot(a, predTime, Yp(end), 'rx');
+                plot(a, pred_15_Time, Yp_15(end), 'rx');
+                plot(a, pred_45_Time, Yp_45(end), 'bx');
                 a.XLim = [(currentDateTime - seconds(10 * intervalDuration)) (currentDateTime + seconds(10 * intervalDuration))];
                 hold(a, 'off');
                 
                 % --------------------------------------------------------------------------
                 % Suggesting changes in power
                 
-                if ((Yp(end) - finalSch) > -20) && ((Yp(end) - finalSch) < 20)
-                    Prediction = [Prediction; "No Change"];
-                elseif (Yp(end) - finalSch) >= 20
-                    Prediction = [Prediction; "Increase"];
+                if ((Yp_45(end) - finalSch) > -20) && ((Yp_45(end) - finalSch) < 20)
+                    Prediction_S = [Prediction_S; "No Change"];
+                elseif (Yp_45(end) - finalSch) >= 20
+                    Prediction_S = [Prediction_S; "Increase"];
                 else
-                    Prediction = [Prediction; "Decrease"];
+                    Prediction_S = [Prediction_S; "Decrease"];
                 end
                 
                 TimeStamp = [TimeStamp; currentDateTime];
@@ -243,8 +242,10 @@ while toc < runTime
                 Frequency = [Frequency; finalFreq];
                 ScheduledGeneration = [ScheduledGeneration; finalSch];
                 ActualGeneration = [ActualGeneration; int64(finalAct)];
+                Prediction_15 = [Prediction_15; int64(Yp_15(end))];
+                Prediction_45 = [Prediction_45; int64(Yp_45(end))];
                 
-                DataTable = table(TimeStamp, Block, Frequency, ScheduledGeneration, ActualGeneration, Prediction, 'VariableNames', varNames);
+                DataTable = table(TimeStamp, Block, Frequency, ScheduledGeneration, ActualGeneration, Prediction_15, Prediction_45, Prediction_S, 'VariableNames', varNames);
                 
                 % Limiting the number of rows in the table
                 if size(DataTable, 1) > tableRowLimit
@@ -255,8 +256,8 @@ while toc < runTime
                 currentVal = sprintf('%d' + " MW", finalSch);
                 lbl3.Text = currentVal;
                 
-                predictedVal = sprintf('%d' + " MW", int64(Yp(end)));
-                lbl4.Text = predictedVal;
+                %predictedVal = sprintf('%d', Prediction_S(end));
+                lbl4.Text = Prediction_S(end);
                 
             end
             
@@ -270,10 +271,6 @@ while toc < runTime
             % Updating the variables
             prevFreqData = currFreq;
             valueCounter = valueCounter + 1;
-            
-            % Printing to data_log file
-            fprintf(fileID, '%s', logFileData);
-            fprintf(fileID, '\n');
             
             % Printing values to table
             uit.Data = DataTable;
@@ -313,6 +310,3 @@ while toc < runTime
     
     pause(intervalDuration)
 end
-
-% Closing the data_log file
-fclose(fileID);
