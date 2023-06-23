@@ -243,8 +243,8 @@ while toc < runTime
                 dataTest(1:end-1, :) = dataTest(2:end, :);
                 dataTest(end, :) = [finalFreq finalSch finalAct];
                 
-                X_15 = (dataTest(1:end, :) - muX_15)./sigmaX_15;
-                X_45 = (dataTest(1:end, :) - muX_45)./sigmaX_45;
+                X_15 = (dataTest(1:end, :) - muX_15')./sigmaX_15';
+                X_45 = (dataTest(1:end, :) - muX_45')./sigmaX_45';
                 X_f = (dataTest(1:end, :) - muX)./sigmaX;
 
                 [net_15, Yp_15] = predictAndUpdateState(net_15, X_15', 'SequencePaddingDirection', 'left');
@@ -286,14 +286,14 @@ while toc < runTime
                 
                 % Plotting power the values on graph
                 hold(a, 'on');
-                plot(a, pred_15_Time, Yp_15(end), 'rx', 'MarkerSize', 10, 'LineWidth', 5);
-                plot(a, pred_45_Time, Yp_45(end), 'bx', 'MarkerSize', 10, 'LineWidth', 5);
+                plot(a, pred_15_Time, Yp_15(end), 'rx', 'MarkerSize', 10, 'LineWidth', 3);
+                plot(a, pred_45_Time, Yp_45(end), 'bx', 'MarkerSize', 10, 'LineWidth', 3);
                 a.XLim = [(currentDateTime - seconds(10 * intervalDuration)) (currentDateTime + seconds(10 * intervalDuration))];
                 hold(a, 'off');
                 
                 % Plotting frequency the values on graph
                 hold(af, 'on');
-                plot(af, pred_15_Time, Yp_f(end), 'rx','MarkerSize', 10, 'LineWidth', 5);
+                plot(af, pred_15_Time, Yp_f(end), 'rx','MarkerSize', 10, 'LineWidth', 3);
                 af.XLim = [(currentDateTime - seconds(10 * intervalDuration)) (currentDateTime + seconds(10 * intervalDuration))];
                 hold(af, 'off');
                 
@@ -317,7 +317,7 @@ while toc < runTime
                 Prediction_15 = [Prediction_15; int64(Yp_15(end))];
                 Prediction_45 = [Prediction_45; int64(Yp_45(end))];
                 
-                DataTable = table(TimeStamp, Block, Frequency, ScheduledGeneration, ActualGeneration, Prediction_15, Prediction_45, Prediction_S, 'VariableNames', varNames);
+                DataTable = table(TimeStamp, Block, Frequency, PredictedFrequency, ScheduledGeneration, ActualGeneration, Prediction_15, Prediction_45, Prediction_S, 'VariableNames', varNames);
                 
                 % Limiting the number of rows in the table
                 if size(DataTable, 1) > tableRowLimit
