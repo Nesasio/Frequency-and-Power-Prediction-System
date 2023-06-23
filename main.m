@@ -83,7 +83,7 @@ lbl3.FontColor = [0 0.5 0];
 lbl3.FontWeight = 'bold';
 lbl3.Text = "NaN";
 
-lbl4 = uilabel(tab2, 'Position', [830 382 350 50]);
+lbl4 = uilabel(tab2, 'Position', [830 382 400 50]);
 lbl4.FontSize = 34;
 lbl4.FontColor = [1 0 0];
 lbl4.FontWeight = 'bold';
@@ -328,7 +328,7 @@ while toc < runTime
                 currentVal = sprintf('%d' + " MW", finalSch);
                 lbl3.Text = currentVal;
                 
-                predictedVal = sprintf('%d', Yp_45(end));
+                predictedVal = sprintf('%d', int64(Yp_45(end)));
                 lbl4.Text = predictedVal + " MW (" +  Prediction_S(end) + ")";
                 lbl9.Text = sprintf('%.4f' + " Hz", finalFreq);
                 lbl10.Text = sprintf('%.4f' + " Hz", Yp_f);
