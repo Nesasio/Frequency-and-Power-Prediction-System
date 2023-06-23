@@ -249,7 +249,7 @@ while toc < runTime
 
                 [net_15, Yp_15] = predictAndUpdateState(net_15, X_15', 'SequencePaddingDirection', 'left');
                 [net_45, Yp_45] = predictAndUpdateState(net_45, X_45', 'SequencePaddingDirection', 'left');
-                [net_f, Yp_f] = predictAndUpdateState(net_f, X_f', 'SequencePaddingDirection', 'left');
+                [net, Yp_f] = predictAndUpdateState(net, X_f', 'SequencePaddingDirection', 'left');
                 
                 
                 % ----------------------------------------------------------------------------
