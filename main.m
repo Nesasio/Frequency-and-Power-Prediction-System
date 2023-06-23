@@ -142,6 +142,7 @@ options = weboptions('Timeout', 150);
 % Initializing variables
 prevFreqData = 0;
 tempSG = 0;
+tempAG = 0;
 
 % Mainloop
 tic;  % Starting stopwatch
@@ -206,8 +207,13 @@ while toc < runTime
                 finalSch = str2double(sch{1});
             end
             
+            if isempty(act)
+                finalAct = tempAG;
+            else
+                finalAct = str2double(act{1});
+            end
+            
             finalFreq = str2double(freq{1});
-            finalAct = str2double(act{1});
             
             if valueCounter < history
                 dataTest(valueCounter+1, :) = [finalFreq finalSch finalAct];
@@ -276,6 +282,7 @@ while toc < runTime
                 
                 % Setting the current predicted value to temp variable
                 tempSG = finalSch;
+                tempAG = finalAct;
                 
                 % Plotting power the values on graph
                 hold(a, 'on');
