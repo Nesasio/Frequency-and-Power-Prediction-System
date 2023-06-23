@@ -83,7 +83,7 @@ lbl3.FontColor = [0 0.5 0];
 lbl3.FontWeight = 'bold';
 lbl3.Text = "NaN";
 
-lbl4 = uilabel(tab2, 'Position', [830 382 200 50]);
+lbl4 = uilabel(tab2, 'Position', [830 382 350 50]);
 lbl4.FontSize = 34;
 lbl4.FontColor = [1 0 0];
 lbl4.FontWeight = 'bold';
@@ -287,7 +287,7 @@ while toc < runTime
                 % Plotting power the values on graph
                 hold(a, 'on');
                 plot(a, pred_15_Time, Yp_15(end), 'rx', 'MarkerSize', 10, 'LineWidth', 3);
-                plot(a, pred_45_Time, Yp_45(end), 'bx', 'MarkerSize', 10, 'LineWidth', 3);
+                plot(a, pred_45_Time, Yp_45(end), 'blackd', 'MarkerSize', 10, 'LineWidth', 3);
                 a.XLim = [(currentDateTime - seconds(10 * intervalDuration)) (currentDateTime + seconds(10 * intervalDuration))];
                 hold(a, 'off');
                 
@@ -328,8 +328,8 @@ while toc < runTime
                 currentVal = sprintf('%d' + " MW", finalSch);
                 lbl3.Text = currentVal;
                 
-                %predictedVal = sprintf('%d', Prediction_S(end));
-                lbl4.Text = Prediction_S(end);
+                predictedVal = sprintf('%d', Yp_45(end));
+                lbl4.Text = predictedVal + " MW (" +  Prediction_S(end) + ")";
                 lbl9.Text = sprintf('%.4f' + " Hz", finalFreq);
                 lbl10.Text = sprintf('%.4f' + " Hz", Yp_f);
                 
