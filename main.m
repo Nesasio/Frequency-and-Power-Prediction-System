@@ -15,7 +15,7 @@ load trainingVariables.mat
 % ---------------------------------------------------------------------------------
 
 powerUpperLimit = 1648;  % Upper limit of the power supplied in MegaWatts
-history = 1;  % Number of datapoints it takes to start the prediction
+history = 4;  % Number of datapoints it takes to start the prediction
 dataTest = zeros(history, 3);
 numPred = 3;  % Number of future predictions to be done in each step
 
@@ -28,7 +28,7 @@ tableRowLimit = 10;  % Maximum number of rows the table will display
 valueCounter = 0;
 stepSize = 50;  % Maximum deviation to be considered negligible
 runTime = 2*24*60*60;  % Hours * 60 * 60 seconds
-intervalDuration = 5*60;  % minutes * 60 seconds (Duration between collecting 2 values)
+intervalDuration = 15*60;  % minutes * 60 seconds (Duration between collecting 2 values)
 
 % ===================================================
 % Creating User Interface
