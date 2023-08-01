@@ -7,6 +7,8 @@ The real time frequency data, scheduled power data and actual power data is extr
 
 In context of a thermal power plant, scheduled power is the power generation which is to be maintained by the plant in accordance with the power demand, costs and various other factors. This scheduled power value for a particular time in a day is assigned to the power plant around 2 blocks in advance. A block in this context is a period of 15 minutes starting from 0000 hours, meaning the block number is 1 from 0000 to 0015 hours on any particular day. This prediction tool therefore, predicts the scheduled power value of the next block and the n+3rd block to aid in better power management of the power plant.
 
+The data in real time updates every 15 minutes and this system takes a few data points before starting predictions. As soon as few data points are collected, the prediction will start and the system will plot the predicted values of next block and n+3rd block every 15 minutes.
+
 ## User Interface
 The user interface displays an interactive table which shows the values of frequency, power data and block number along with the predicted suggestion for the next block which updates in real time every 15 minutes.
 The real time graphs are also displayed which shows current as well as predicted values. Graphs can be cycled between power data and frequency data from the tab group.
